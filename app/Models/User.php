@@ -35,6 +35,7 @@ class User extends Authenticatable implements JWTSubject
         'order_id',
         'payment_status',
         'status',
+        'password_reset_code',
     ];
 
     /**

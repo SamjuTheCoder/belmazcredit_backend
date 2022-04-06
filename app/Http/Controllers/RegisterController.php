@@ -7,7 +7,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Mail\SignUp;
+use App\Mail\ForgotPassword;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
 
 /*
  * @Author: Julius Fasema
@@ -26,7 +28,7 @@ class RegisterController extends FunctionsController
                 'name' => 'required|string|max:255',
                 'email' => 'required|string|email|max:255|unique:users',
                 'password' => 'required|string|min:6|confirmed',
-                //'transaction_code'=> 'required|string',
+                'sponsor_id'=> 'required|string',
         ]);
 
         if($validator->fails()){
@@ -332,5 +334,79 @@ class RegisterController extends FunctionsController
         }
     }
 
+    //forgot password
+    public function forgotPassword(Request $request) {
+
+        try {
+                
+                $this->validate($request, [
+
+                'email' => 'required|unique:users|email|string',
+                ]);     
+                
+                $email = $request->input('email');
+                $transaction_code = $this->generateTransactionCode();
+
+                Mail::to($request->input('email'))->send(new ForgotPassword($email, $transaction_code));
+                User::where('email',$email)->update(['password_reset_code'=>$transaction_code]);
+
+                        return response()->json([
+                                
+                                'success' => 'success',
+                                'code'    => '00',
+                                'message' => 'Check your email box and follow the email link to reset your password',
+                               
+                        ]);
+        } catch (\Throwable $th) {
+               
+                throw $th;
+        }
+        
+    }
+
+    //reset password
+    public function resetPassword(Request $request)
+    {
+
+        Validator::make($request->all(), [
+                'password_reset_code' => 'required|string|max:255|unique:users',
+                'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $pass = $request->get('password');
+        $reset_code = $request->get('password_reset_code');
+
+        // validate transaction code
+        $res1 = $this->validateCode($reset_code);
+        
+                if($res1 == 0) {
+
+                        return response()->json([
+                                
+                                'success' => 'error',
+                                'code'    => 'E003',
+                                'message' => 'Invalid passwrod reset code',
+                        ]);
+
+                        //exit;
+                }
+                elseif($res1 == 1){
+                        // update password
+                        User::where('password_reset_code', $reset_code)->update(['password' => Hash::make($pass)]);
+                        User::where('password_reset_code', $reset_code)->update(['password_reset_code' => null]);
+
+                        // update email and transaction code
+                        $this->updateTransactionCode($reset_code);
+
+                        return response()->json([
+                                
+                                'success' => 'success',
+                                'code'    => '00',
+                                'message' => 'Password successfully updated!',
+                        ]);
+
+                        //exit;
+                }
+        }
 
 }

@@ -19,6 +19,7 @@ class CreateWalletsTable extends Migration
             $table->string('earning_type')->nullable();
             $table->double('wallet_amount')->nullable();
             $table->double('withdrawal')->nullable();
+            $table->integer('withdrawal_status')->default(0);
             $table->timestamps();
         });
     }

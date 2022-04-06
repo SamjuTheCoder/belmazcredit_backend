@@ -191,6 +191,7 @@ class HomeController extends FunctionsController
         $data = Contribution::leftjoin('users','contributions.user_id','=','users.id')
         ->leftjoin('phases','contributions.phases_id','=','phases.id')
         ->select('*','contributions.id as uid','contributions.status as cstatus','users.name as uname')
+        ->orderby('contributions.id','desc')
         ->get();
 
         return response()->json([
@@ -271,11 +272,18 @@ class HomeController extends FunctionsController
         // determine the next user inline to earn
         $earning_status = $this->nextToEarn(Auth::user()->id, Auth::user()->phases_id);
 
-        // check if user is in phase 1 - 10users
-        //if( $user_phase == 1 ) {
+        // sum user contribution
+        $user_contribution = $this->sumWalletContribution(Auth::user()->referral_id);
 
         $this->fetchContributors($user_referralid, $user_phase);
         $count = $this->countContributors($user_referralid, $user_phase);
+        $walletsum = $this->sumWalletReferral(Auth::user()->referral_id);
+
+        // sum referral withdrawal
+        $referral_withdrawal = $this->sumWithdrawalReferral(Auth::user()->referral_id);
+
+        // sum contribution withdrawal 
+        $contribution_withdrawal = $this->sumWithdrawalContribution(Auth::user()->referral_id);
 
             return [
                 "stage_users" => $count,
@@ -290,7 +298,11 @@ class HomeController extends FunctionsController
                 'investment_amount' => $investment_amount,
                 'user_role' => $user_role,
                 'earning_status' => $earning_status,
-                //'response' =>  $response
+                'wallet' =>  $walletsum,
+                'user_contribution' => $user_contribution,
+                'referral_withdrawal' => $referral_withdrawal,
+                'contribution_withdrawal' => $contribution_withdrawal
+                
                 ];
 
         // check if user is in phase 2- 100
@@ -484,7 +496,7 @@ class HomeController extends FunctionsController
             ];
     }
 
-    //list all investment 
+    //list all transactions 
     public function sumAllWallets() {
 
         $list_all = $this->sumAllWallet();
@@ -495,11 +507,53 @@ class HomeController extends FunctionsController
             ];
     }
 
-    public function claimContribution() {
+     //list all withdrawal transaction 
+     public function sumAllWalletsWithdrawal() {
 
-        if(Auth::user()->phases_id == 1){
-            $EARNING = 100000;
+        $list_all = $this->sumAllWalletWithdrawal();
+
+
+        return [
+            'list_wallets_withdrawal' => $list_all
+            ];
+    }
+
+    public function claimContribution(Request $request) {
+
+        if($request->input('phase_id') == 1){
+                return response()->json([
+                    'success' => 'Error',
+                    'code'    => 'E00',
+                    'message' => 'Sorry you are not yet qualify to earn',
+                ]);
+
+        }
+        elseif($request->input('phase_id') == 2){
+            $EARNING = 40000;
+            $exists = $this->isExistsWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING);
+
+            if($exists == 1) {
+                return response()->json([
+                    'success' => 'Error',
+                    'code'    => 'E00',
+                    'message' => 'Fund already claimed!',
+                ]);
+
+            }elseif($exists == 0 ){
             $this->addToWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING); // add earning into wallet
+            $this->confirmContributionClaim(Auth::user()->referral_id, Auth::user()->phases_id); // confirm user has claim fund
+
+            return response()->json([
+                'success' => 'success',
+                'code'    => '00',
+                'message' => 'Fund successfully claimed!',
+            ]);
+            }
+        }
+        elseif($request->input('phase_id') == 3){
+            $EARNING = 150000;
+            $this->addToWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING); // add earning into wallet
+            $this->confirmContributionClaim(Auth::user()->referral_id, Auth::user()->phases_id); // confirm user has claim fund
 
             return response()->json([
                 'success' => 'success',
@@ -507,19 +561,10 @@ class HomeController extends FunctionsController
                 'message' => 'Fund successfully claimed!',
             ]);
         }
-        elseif(Auth::user()->phases_id == 2){
-            $EARNING = 500000;
+        elseif($request->input('phase_id') == 4){
+            $EARNING = 1400000;
             $this->addToWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING); // add earning into wallet
-
-            return response()->json([
-                'success' => 'success',
-                'code'    => '00',
-                'message' => 'Fund successfully claimed!',
-            ]);
-        }
-        elseif(Auth::user()->phases_id == 3){
-            $EARNING = 3000000;
-            $this->addToWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING); // add earning into wallet
+            $this->confirmContributionClaim(Auth::user()->referral_id, Auth::user()->phases_id); // confirm user has claim fund
 
             return response()->json([
                 'success' => 'success',
@@ -528,8 +573,9 @@ class HomeController extends FunctionsController
             ]);
         }
         elseif(Auth::user()->phases_id == 4){
-            $EARNING = 15000000;
+            $EARNING = 10000000;
             $this->addToWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $EARNING); // add earning into wallet
+            $this->confirmContributionClaim(Auth::user()->referral_id, Auth::user()->phases_id); // confirm user has claim fund
 
             return response()->json([
                 'success' => 'success',
@@ -539,7 +585,104 @@ class HomeController extends FunctionsController
         }
     }
 
-       
+    public function referralWithdraw(Request $request) {
+
+       $amount =  $this->sumWalletReferral(Auth::user()->referral_id);
+
+    //    if($request->input('amount') == 1000)
+    //    {
+    //     $input_amount = 1000;
+    //    }
+
+    if($request->input('amount') == null){
+
+        return response()->json([
+            'success' => 'Error',
+            'code'    => 'E00',
+            'message' => 'Please enter amount to withdraw',
+        ]);
+
+    }elseif( $request->input('amount') > $amount ){
+
+            return response()->json([
+                'success' => 'Error',
+                'code'    => 'E00',
+                'message' => 'Sorry you can not place withdrawal. Insufficient Fund.',
+            ]);
+
+       }else{
+
+                $bal = $amount - $request->input('amount');
+
+                if( $bal <= 1000 ){
+
+                    return response()->json([
+                        'success' => 'Error',
+                        'code'    => 'E00',
+                        'message' => 'Sorry you can not withdraw minimum balance of 1,000',
+                    ]);
+
+                }
+                else {
+
+                    $this->withdrawWallet(Auth::user()->referral_id, 'REFERRAL BONUS', $request->input('amount'));
+            
+                    return response()->json([
+                        'success' => 'success',
+                        'code'    => '00',
+                        'message' => 'Successfull',
+                    ]);
+                }
+
+                
+            }
+      
+    
+    }
+
+    public function contributionWithdraw(Request $request) {
+
+        $amount =  $this->sumWalletContribution(Auth::user()->referral_id);
+ 
+        if($request->input('amount') == null){
+ 
+         return response()->json([
+             'success' => 'Error',
+             'code'    => 'E00',
+             'message' => 'Please enter amount to withdraw',
+         ]);
+ 
+        }
+        elseif($request->input('amount') == 0) {
+         
+         return response()->json([
+             'success' => 'Error',
+             'code'    => 'E00',
+             'message' => 'Sorry you can not withdraw this amount',
+         ]);
+ 
+         }  
+        elseif( $request->input('amount') > $amount ){
+ 
+             return response()->json([
+                 'success' => 'Error',
+                 'code'    => 'E00',
+                 'message' => 'Sorry! You have insufficient balance',
+             ]);
+ 
+        }
+         else{  
+             
+             $this->withdrawWallet(Auth::user()->referral_id, 'CONTRIBUTION EARNING', $request->input('amount'));
+ 
+             return response()->json([
+                 'success' => 'success',
+                 'code'    => '00',
+                 'message' => 'Successfull',
+             ]);
+         }
+     
+     }
 
     
 }

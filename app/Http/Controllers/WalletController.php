@@ -18,7 +18,8 @@ class WalletController extends FunctionsController
     
     public function Wallet() {
         
-        $data = $this->home(Auth::user()->referral_id); // call user wallet function
+        // call user wallet function
+        $data = $this->home(Auth::user()->referral_id); 
 
         return response()->json([
             'success' => 'success',
@@ -53,4 +54,25 @@ class WalletController extends FunctionsController
             'data' => $lists,
         ], 201);
     }
+
+     // confirm user withdrawal
+     public function confirmUserWithdrawal(Request $request) {
+
+        $res =  $this->confirmWithdrawal($request->input('uid'));
+        
+        if($res == 1) {
+ 
+                 return response()->json([
+                                 
+                         'success' => 'success',
+                         'code'    => '00',
+                         'message' => 'Withdrawal Confirmed!',
+                         'data' => 1,
+                 ]);
+         }
+         else {
+                 exit;
+         }
+     }
+
 }

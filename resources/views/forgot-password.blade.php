@@ -44,27 +44,9 @@
 			    Dear <h3>{{ $email }}<h3><br>
 			    
 			    <font face="Arial, Helvetica, sans-serif" size="1" color="#57697e" style="font-size: 12px;">
-			   <p>Greetings!</p>
-			    Welcome to Belmaz Credit. We appreciate you in choosing Belmaz Credit as your income platform. Pay into the bank details below, fill the registration form and contact us for account activation below:<br>
-			    <h4>Account Details:</h4>
-			    <p>
-			    Account Name: Belmaz Multipurpose Cooperative Society Limited<br/>
-			    Bank Name: FCMB<br/>
-				Account Number: 8856274012<br/>
-			    Transaction Code: {{ $transaction_code }}<br/>
-			    Website Link: https://belmazcredit.com <br/>
-				Email: info@belmazcredit.com <br/>
-				Phone:<br/> 
-				<strong>Note:</strong> The transaction code will be use during registration process.<br/>
-				<center><a href="https://belmazcredit.com/register"><strong> Click here to complete your registration</strong></a></center>
-			    </p>
-			    It will be our endeavour to ensure that you can enjoy our services further with income. We look forward to a long and happy business relationship. Customer service is our top priority at NG and we hope our team provides you the best world-class service we are known for, which you deserve.
-			    <p>
-			        Sincerely,<br/>
-			        Customer Relationship Portal<br/>
-			        Belmaz Credit<br/>
-			    </p>
-			    
+			    Use this passwrod reset code: <h3>{{ $transaction_code }}</h3>
+				<center><a href="https://belmazcredit.com/reset-password"><strong> Click here to reset your password</strong></a></center>
+                </p>
 			   	</font>
 			</td></tr>
 			<tr><td align="center">

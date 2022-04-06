@@ -13,6 +13,7 @@ class Wallet extends Model
         'user_id',
         'earning_type',
         'wallet_amount',
-        'withdrawal'
+        'withdrawal',
+        'withdrawal_status'
     ];
 }

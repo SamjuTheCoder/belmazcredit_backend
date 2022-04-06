@@ -22,6 +22,8 @@ use App\Http\Controllers\AuthController;
     Route::post('signup-email', 'RegisterController@signUpEmail');
     Route::post('register', 'RegisterController@register');
     Route::post('login', 'UserController@authenticate');
+    Route::post('forgot-password', 'RegisterController@forgotPassword');
+    Route::post('reset-password', 'RegisterController@resetPassword');
      //get users
    // Route::get('list-users', 'UserController@getUsers');
 
@@ -76,6 +78,9 @@ use App\Http\Controllers\AuthController;
          // list wallet
         Route::get('list-wallets', 'HomeController@sumAllWallets');
 
+        // list wallet
+        Route::get('list-wallets-withdrawal', 'HomeController@sumAllWalletsWithdrawal');
+
         // generate code
         Route::post('generate-transaction-code', 'GenerateCodeController@generateTranCode');
         Route::get('list-transaction-code', 'GenerateCodeController@listTranCode');
@@ -98,7 +103,15 @@ use App\Http\Controllers\AuthController;
         Route::post('confirm-contribution-payment', 'HomeController@confirmContributionrPayment');
 
         // claim contribution
-        Route::get('claim-fund', 'HomeController@claimContribution');
+        Route::post('claim-fund', 'HomeController@claimContribution');
 
+        // referral withdraw
+        Route::post('referral-fund-withdraw', 'HomeController@referralWithdraw');
+
+         // contribution withdraw
+         Route::post('contribution-fund-withdraw', 'HomeController@contributionWithdraw');
+
+         // confirm withdrawal
+         Route::post('confirm-withdrawal', 'WalletController@confirmUserWithdrawal');
 
     });

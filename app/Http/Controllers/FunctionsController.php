@@ -505,6 +505,57 @@ class FunctionsController extends Controller
 
     }
 
+     // check fund exists in wallet
+     public function isExistsWallet($userid, $transactiontype, $amount) {
+
+        $data = Wallet::where('user_id',$userid)->where('earning_type', $transactiontype)->where('wallet_amount',$amount)->exists();
+
+        if($data){ return 1;}else{return 0;}
+
+    }
+
+    // withdraw bonus
+    public function withdrawWallet($userid, $transactiontype, $amount) {
+
+        Wallet::create(['user_id'=> $userid, 'earning_type'=> $transactiontype, 'withdrawal'=>$amount]);  
+    }
+
+    // sum wallet referral amount
+    public function sumWalletReferral($userid) {
+
+        $amount = Wallet::where('user_id', $userid)->where('earning_type','REFERRAL BONUS')->sum('wallet_amount');
+
+        return $amount;
+
+    }
+
+    // sum withdrawal referral 
+    public function sumWithdrawalReferral($userid) {
+
+        $amount = Wallet::where('user_id', $userid)->where('withdrawal_status',1)->where('earning_type','REFERRAL BONUS')->sum('withdrawal');
+
+        return $amount;
+
+    }
+
+     // sum wallet contribution amount
+     public function sumWalletContribution($userid) {
+
+        $amount = Wallet::where('user_id', $userid)->where('earning_type','CONTRIBUTION EARNING')->sum('wallet_amount');
+
+        return $amount;
+
+    }
+
+    // sum withdrawal contribution amount
+    public function sumWithdrawalContribution($userid) {
+
+        $amount = Wallet::where('user_id', $userid)->where('withdrawal_status',1)->where('earning_type','CONTRIBUTION EARNING')->sum('withdrawal');
+
+        return $amount;
+
+    }
+
     // sum wallet amount
     public function sumWallet($userid) {
 
@@ -514,13 +565,12 @@ class FunctionsController extends Controller
 
     }
 
-    // sum wallet amount
+    // sum withdrawal amount
     public function withdrawalWallet($userid) {
 
-        $amount = Wallet::where('user_id', $userid)->sum('withdrawal');
+        $amount = Wallet::where('user_id', $userid)->where('withdrawal_status',1)->sum('withdrawal');
 
         return $amount;
-
     }
 
     // get login user role
@@ -611,6 +661,7 @@ class FunctionsController extends Controller
         ->leftjoin('investments','users.investment_id','=','investments.id')
         ->leftjoin('bank_accounts','users.id','=','bank_accounts.user_id')
         ->select('*','users.id as uid','users.name as uname', 'users.phases_id as pid','bank_accounts.name as bankname')
+        ->orderby('users.id','desc')
         ->get();
 
         return $users;
@@ -638,6 +689,7 @@ class FunctionsController extends Controller
         ->leftjoin('users','investments.user_id','=','users.id')
         ->leftjoin('investment_setups','investments.investment_id','=','investment_setups.id')
         ->select('*','investments.id as uid')
+        ->orderby('investments.id','desc')
         ->get();
 
         return $users;
@@ -648,6 +700,21 @@ class FunctionsController extends Controller
     public function sumAllWallet() {
 
         $amount = Wallet::leftjoin('users','wallets.user_id','=','users.referral_id')
+        ->select('*','wallets.id as uid')
+        ->orderby('wallets.id','desc')
+        ->get();
+
+        return $amount;
+
+    }
+
+    // sum all wallet amount
+    public function sumAllWalletWithdrawal() {
+
+        $amount = Wallet::where('wallets.withdrawal','<>',null)
+        ->leftjoin('users','wallets.user_id','=','users.referral_id')
+        ->select('*','wallets.id as uid')
+        ->orderby('wallets.id','desc')
         ->get();
 
         return $amount;
@@ -817,7 +884,7 @@ class FunctionsController extends Controller
 
         }elseif($phaseid == 2) {
            
-            $users = Contribution::where('referral_id', $referralid)->where('phases_id', 1)->get();
+            $users = Contribution::where('referral_id', $referralid)->where('phases_id', 1)->where('status', 1)->get();
 
             foreach ($users as $key => $value) {
                 $count = $this->countContributors($value->sponsor_id, $value->phases_id);
@@ -835,7 +902,7 @@ class FunctionsController extends Controller
 
     // count cntributors
     public function countContributors($referralid, $phaseid) {
-        $count = Contribution::where('referral_id', $referralid)->where('phases_id', $phaseid)->count();             
+        $count = Contribution::where('referral_id', $referralid)->where('phases_id', $phaseid)->where('status', 1)->count();             
         return $count;
     }
 
@@ -875,9 +942,15 @@ class FunctionsController extends Controller
 
     }
 
+     // confirm contribution has been claim
+     public function confirmContributionClaim($referralid, $phase) {
+
+        Contribution::where('referral_id', $referralid)->update(['receive_status' => 1, 'phase_status' => $phase]);
+    }
+
     //count per user contributions
     public function countPerUserContribution($referralid, $phaseid) {
-        $count = Contribution::where('referral_id', $referralid)->where('phases_id', $phaseid)->count();
+        $count = Contribution::where('referral_id', $referralid)->where('phases_id', $phaseid)->where('status', 1)->count();
         return $count;
     }
 
@@ -908,6 +981,19 @@ class FunctionsController extends Controller
 
         if($resp){
             
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+
+    //confirm withdrawal
+    public function confirmWithdrawal($uid) {
+
+        $resp = Wallet::where('id', $uid)->update(['withdrawal_status' => 1]);
+
+        if($resp){
             return 1;
         }
         else {

@@ -34,6 +34,7 @@ class CreateUsersTable extends Migration
             $table->integer('order_id')->default(0);
             $table->integer('payment_status')->default(0);
             $table->integer('status')->default(0);
+            $table->string('password_reset_code')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
